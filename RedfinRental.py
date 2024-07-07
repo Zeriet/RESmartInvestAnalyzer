@@ -6,14 +6,13 @@ from bs4 import BeautifulSoup
 import re
 
 def extract_numeric_value(value, allow_decimal=False):
-    if allow_decimal:
+    if allow_decimal: 
         numeric_part = re.sub(r'[^\d.]', '', value)
     else:
         numeric_part = re.sub(r'[^\d]', '', value)
     return float(numeric_part) if numeric_part else 0
 
 def get_redfin_rental_data(zipcode):
-    # base_url = f"https://www.redfin.com/zipcode/{zipcode}"
     base_url = f"https://www.redfin.com/zipcode/{zipcode}/houses-for-rent"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
@@ -69,10 +68,10 @@ def get_redfin_rental_data(zipcode):
             'beds': extract_numeric_value(beds_elem.text.strip()) if beds_elem else 0,
             'baths': extract_numeric_value(baths_elem.text.strip(), allow_decimal=True) if baths_elem else 0,
             'sqft': extract_numeric_value(sqft_elem.text.strip()) if sqft_elem else 0,
-            # 'coordinates': {
-            #     'latitude': latitude,
-            #     'longitude': longitude
-            # },
+            'coordinates': {
+                'latitude': latitude,
+                'longitude': longitude
+            },
             'url': url
         }
     
@@ -82,13 +81,57 @@ def get_redfin_rental_data(zipcode):
 
 # Example usage:
 zipcode = '78660'  # Replace with the desired zipcode
-properties = get_redfin_rental_data(zipcode)
+rentals = get_redfin_rental_data(zipcode)
 # Print the results
-for property in properties:
-    print(property)
+# for property in properties:
+#     print(property)
 
 
 # TODO
-# get average property tax for a zip 
-# get rent estimates of a zipcode from redfin and filter the closest houses by zipcode, beds, sqft and bath 
-# and median of those will be the estimate renal
+# remove values that are not needed, example coordinates
+# for each property, get rental from this, visit the property, get the insurance and tax from there.TabError
+    
+import numpy as np
+
+def categorize_properties_with_prices(records):
+    criteria = [
+        (2, 1, 1),
+        (2, 1.5, 2),
+        (3, 1, 1),
+        (3, 1.5, 2),
+        (3, 2.5, 3),
+        (4, 1.5, 2),
+        (4, 2.5, 3),
+        (5, 1, 5)
+    ]
+    
+    categorized_properties = {}
+    
+    for beds, min_baths, max_baths in criteria:
+        key = f"{beds},{min_baths}-{max_baths}"
+        categorized_properties[key] = {
+            'property_info': [],
+            'prices': []
+        }
+        for record in records:
+            if record['beds'] == beds and min_baths <= record['baths'] <= max_baths:
+                categorized_properties[key]['property_info'].append(record)
+                categorized_properties[key]['prices'].append(float(record['price']))
+    
+    result = {}
+    for key, data in categorized_properties.items():
+        prices = data['prices']
+        if not prices:
+            continue
+        prices_sorted = sorted(prices)
+        median_price = np.median(prices_sorted)
+        percentile_40 = np.percentile(prices_sorted, 40) if len(prices_sorted) >= 3 else prices_sorted[0]  # Using the closest value to 40th percentile if not enough data
+        result[key] = {
+            '40_percentile_price': percentile_40,
+            'all_prices': prices_sorted
+        }
+    
+    return result
+
+rental_analysis = categorize_properties_with_prices(rentals)
+print(rental_analysis)

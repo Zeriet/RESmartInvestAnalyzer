@@ -31,10 +31,10 @@ def get_redfin_data(zipcode):
     soup = BeautifulSoup(response.content, 'html.parser')
 
     property_list = []
-    print(soup)
-    f = open("sample.txt", "a")
-    f.write(soup.prettify())
-    f.close()
+    # print(soup)
+    # f = open("sample.txt", "a")
+    # f.write(soup.prettify())
+    # f.close()
 
     properties = soup.find_all('div', class_='HomeCardContainer')
     
@@ -84,5 +84,11 @@ def get_redfin_data(zipcode):
 zipcode = '78660'  # Replace with the desired zipcode
 properties = get_redfin_data(zipcode)
 # Print the results
-# for property in properties:
-#     print(property)
+for property in properties:
+    print(property)
+
+
+# TODO
+# get average property tax for a zip 
+# get rent estimates of a zipcode from redfin and filter the closest houses by zipcode, beds, sqft and bath 
+# and median of those will be the estimate renal
